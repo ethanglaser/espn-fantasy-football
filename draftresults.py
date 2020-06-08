@@ -32,6 +32,9 @@ def getDraftResults(espn_s2, swid, url, playerData, fantasyTeamsKey):
     draftPositionOrder = {'QB': 1, 'RB': 1, 'WR': 1, 'TE': 1, 'K': 1, 'D/ST': 1, 'HC': 1}
     r = requests.get(url, cookies={"swid": swid, "espn_s2": espn_s2}, params={"view": 'mDraftDetail'})
     data = json.loads(r.content)[0]
+    print(data.keys())
+    #f player['id'] == 3117251:
+    #    pprint(player['player']['stats'][0]['appliedTotal'])
     for pick in data['draftDetail']['picks']:
         draftData[pick['playerId']] = playerData[pick['playerId']]
         draftData[pick['playerId']]['pickOverall'] = pick['overallPickNumber']
@@ -46,12 +49,18 @@ def createSheet(draftData):
     for sheet in wb.sheetnames:
         if sheet != 'Draft+Results':
             wb.remove_sheet(wb.get_sheet_by_name(sheet))
+    ws.cell(row=1, column=1).value = 'Overall Draft Pick'
+    ws.cell(row=1, column=2).value = 'Player Name'
+    ws.cell(row=1, column=3).value = 'Fantasy Team'
+    ws.cell(row=1, column=4).value = 'Position-Based Draft Pick'
+    ws.cell(row=1, column=5).value = 'Position-Based Season Finish'
+    ws.cell(row=1, column=6).value = 'Pick Rating (1 worst, 10 best)'
     for pick in draftData:
-        ws.cell(row=draftData[pick]['pickOverall'],column=1).value = draftData[pick]['pickOverall']
-        ws.cell(row=draftData[pick]['pickOverall'],column=2).value = draftData[pick]['name']
-        ws.cell(row=draftData[pick]['pickOverall'],column=3).value = draftData[pick]['fantasyTeam']
-        ws.cell(row=draftData[pick]['pickOverall'],column=4).value = draftData[pick]['position'] + str(draftData[pick]['pickPosition'])
-        ws.cell(row=draftData[pick]['pickOverall'],column=5).value = draftData[pick]['position'] + str(draftData[pick]['rankPosition'])
+        ws.cell(row=draftData[pick]['pickOverall']+1,column=1).value = draftData[pick]['pickOverall']
+        ws.cell(row=draftData[pick]['pickOverall']+1,column=2).value = draftData[pick]['name']
+        ws.cell(row=draftData[pick]['pickOverall']+1,column=3).value = draftData[pick]['fantasyTeam']
+        ws.cell(row=draftData[pick]['pickOverall']+1,column=4).value = draftData[pick]['position'] + '-' + str(draftData[pick]['pickPosition'])
+        ws.cell(row=draftData[pick]['pickOverall']+1,column=5).value = draftData[pick]['position'] + '-' + str(draftData[pick]['rankPosition'])
     wb.save(str(leagueId) + '-' + str(seasonId) + '.xlsx')
 
 if __name__ == "__main__":
@@ -70,7 +79,7 @@ if __name__ == "__main__":
     fantasyTeamsKey = getFantasyTeams(espn_s2, swid, url)
     playerData = getSeasonResults(espn_s2, swid, url2, positionsKey, nflTeamsKey)
     draftData = getDraftResults(espn_s2, swid, url, playerData, fantasyTeamsKey)
-    
+
     if str(leagueId) + '-' + str(seasonId) + '.xlsx' in os.listdir():
         raise ValueError("Sheet already exists for league " + str(leagueId) + " in year " + str(seasonId) + ". To create a new sheet, delete the existing one.")
     createSheet(draftData)
