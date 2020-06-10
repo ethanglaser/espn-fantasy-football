@@ -59,7 +59,7 @@ def createSheet(draftData):
         ws.cell(row=draftData[pick]['pickOverall']+1,column=3).value = draftData[pick]['fantasyTeam']
         ws.cell(row=draftData[pick]['pickOverall']+1,column=4).value = draftData[pick]['position'] + '-' + str(draftData[pick]['pickPosition'])
         ws.cell(row=draftData[pick]['pickOverall']+1,column=5).value = draftData[pick]['position'] + '-' + str(draftData[pick]['rankPosition'])
-    wb.save('Drafts/' + str(leagueId) + '-' + str(seasonId) + '.xlsx')
+    wb.save('Drafts/Basic/' + str(leagueId) + '-' + str(seasonId) + '.xlsx')
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
@@ -78,6 +78,6 @@ if __name__ == "__main__":
     playerData = getSeasonResults(espn_s2, swid, url2, positionsKey, nflTeamsKey)
     draftData = getDraftResults(espn_s2, swid, url, playerData, fantasyTeamsKey)
 
-    if 'Drafts/' + str(leagueId) + '-' + str(seasonId) + '.xlsx' in os.listdir():
+    if 'Drafts/Basic/' + str(leagueId) + '-' + str(seasonId) + '.xlsx' in os.listdir():
         raise ValueError("Sheet already exists for league " + str(leagueId) + " in year " + str(seasonId) + ". To create a new sheet, delete the existing one.")
     createSheet(draftData)

@@ -43,3 +43,11 @@ The third request creates a dictionary of all players drafted in the fantasy lea
 Once the requests are complete, the information is outputted to an Excel spreadsheet, identified by the League ID and year, created in the same directory as the code.
 
 ESPN does not have information on this API, but details can be found [here](https://stmorse.github.io/journal/espn-fantasy-v3.html) and [here](https://www.reddit.com/r/fantasyfootball/comments/ct4hf3/new_espn_api/).
+
+
+
+
+
+# Acknowledgements
+
+Thanks to Jack Conlin, Nick Goetz, Matt Muenchow, Hunter Zogg, Elliot Glaser, Jack Olmanson, Jack Rothstein, Ethan Edwards, Rowan Desjardins, and Anirudh Panuganty for their contributions to the training data and input to the model. This was a truly interactive process and this would not be what it is without their feedback and suggestions.
