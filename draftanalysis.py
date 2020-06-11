@@ -1,93 +1,82 @@
 import sklearn
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVR
 import numpy as np
 import openpyxl
 import os
 
-def basic():
-    for excel in os.listdir(os.curdir + '/Fitted/Basic7'):
-        os.remove(os.curdir + '/Fitted/Basic7/' + excel)
-    inputs, outputs = [], []
+
+def getSamples(positionsDict, variables, headersKey):
     for excel in os.listdir(os.curdir + '/Training'):
         wb = openpyxl.load_workbook(filename = os.curdir + '/Training/' + excel)
         ws = wb.get_sheet_by_name("Draft+Results")
-
         row = 2
-        pick = ws.cell(row=row, column=1).value
-        inputs, outputs = [], []
+        pick = ws.cell(row=row, column=headersKey['Overall Draft Pick']).value
         while pick:
-            nextRow = [float(ws.cell(row=row, column=4).value.split('-')[1]), float(ws.cell(row=row, column=5).value.split('-')[1])]
+            position = ws.cell(row=row, column=headersKey['Position']).value
+            nextRow = [float(ws.cell(row=row, column=headersKey['Position-Based Draft Pick']).value.split('-')[1]), float(ws.cell(row=row, column=headersKey['Position-Based Season Finish']).value.split('-')[1])]
             if nextRow[1] == 0:
-                if ws.cell(row=row, column=4).value.split('-')[0] == 'WR' or 'RB':
+                if ws.cell(row=row, column=headersKey['Position']) == 'WR' or 'RB':
                     nextRow[1] = 100
                 else:
                     nextRow[1] = 50
-            inputs.append(nextRow)
-            outputs.append(float(ws.cell(row=row, column=6).value))
+            for variable in variables:
+                nextRow.append(float(ws.cell(row=row, column=headersKey[variable]).value))
+            positionsDict[position]['inputs'].append(nextRow)
+            positionsDict[position]['outputs'].append(float(ws.cell(row=row, column=headersKey['Pick Rating (1 worst, 10 best)']).value))
             row += 1
             pick = ws.cell(row=row, column=1).value
 
-    logRegressor = LogisticRegression()
-    logRegressor.fit(np.asarray(inputs), np.asarray(outputs))
-    svRegressor = SVR()
-    svRegressor.fit(np.asarray(inputs), np.asarray(outputs))
-    linRegressor = LinearRegression()
-    linRegressor.fit(np.asarray(inputs), np.asarray(outputs))
-    poly2 = PolynomialFeatures(degree=2)
-    poly3 = PolynomialFeatures(degree=3)
-    poly4 = PolynomialFeatures(degree=4)
-    poly5 = PolynomialFeatures(degree=5)
-    poly2Inputs = poly2.fit_transform(np.asarray(inputs))
-    poly3Inputs = poly3.fit_transform(np.asarray(inputs))
-    poly4Inputs = poly4.fit_transform(np.asarray(inputs))
-    poly5Inputs = poly5.fit_transform(np.asarray(inputs))
-    clf2 = LinearRegression()
-    clf2.fit(poly2Inputs, np.asarray(outputs))
-    clf3 = LinearRegression()
-    clf3.fit(poly3Inputs, np.asarray(outputs))
-    clf4 = LinearRegression()
-    clf4.fit(poly4Inputs, np.asarray(outputs))
-    clf5 = LinearRegression()
-    clf5.fit(poly5Inputs, np.asarray(outputs))
+def getHeaders(path):
+    wb = openpyxl.load_workbook(filename = path)
+    ws = wb.get_sheet_by_name("Draft+Results")
+    headers = {}
+    row = 1
+    column = 1
+    header = ws.cell(row=row,column=column).value
+    while header:
+        headers[header] = column
+        column += 1
+        header = ws.cell(row=row,column=column).value
+    return headers
 
+def trainSamples(positionsDict):
+    for position in positionsDict:
+        svRegressor = SVR()
+        svRegressor.fit(np.asarray(positionsDict[position]['inputs']), np.asarray(positionsDict[position]['outputs']))
+        positionsDict[position]['regressor'] = svRegressor
+
+def evaluate(positionsDict, variables, headersKey):
     for excel in os.listdir(os.curdir + '/Drafts'):
-        wb2 = openpyxl.load_workbook(filename = os.curdir + '/Drafts/' + excel)
-        ws2 = wb2.get_sheet_by_name("Draft+Results")
-
+        wb = openpyxl.load_workbook(filename = os.curdir + '/Drafts/' + excel)
+        ws = wb.get_sheet_by_name("Draft+Results")
         row = 2
-        pick = ws2.cell(row=row, column=1).value
-        samples = []
+        pick = ws.cell(row=row, column=1).value
         while pick:
-            nextRow = [float(ws2.cell(row=row, column=4).value.split('-')[1]), float(ws2.cell(row=row, column=5).value.split('-')[1])]
-            if nextRow[1] == 0:
-                if ws2.cell(row=row, column=4).value.split('-')[0] == 'WR' or 'RB':
-                    nextRow[1] = 100
+            position = ws.cell(row=row, column=headersKey['Position']).value
+            sample = [float(ws.cell(row=row, column=headersKey['Position-Based Draft Pick']).value.split('-')[1]), float(ws.cell(row=row, column=headersKey['Position-Based Season Finish']).value.split('-')[1])]
+            if sample[1] == 0:
+                if ws.cell(row=row, column=headersKey['Position']) == 'WR' or 'RB':
+                    sample[1] = 100
                 else:
-                    nextRow[1] = 50
-            samples.append(nextRow)
+                    sample[1] = 50
+            for variable in variables:
+                sample.append(float(ws.cell(row=row, column=headersKey[variable]).value))
+            ws.cell(row=row, column = headersKey['Pick Rating (1 worst, 10 best)']).value = str(list(positionsDict[position]['regressor'].predict(np.asarray([sample])))[0])
             row += 1
-            pick = ws2.cell(row=row, column=1).value
-        logResults = logRegressor.predict(np.asarray(samples))
-        linResults = linRegressor.predict(np.asarray(samples))
-        svResults = svRegressor.predict(np.asarray(samples))
-        poly2Samples = poly2.fit_transform(np.asarray(samples))
-        poly2Results = clf2.predict(poly2Samples)    
-        poly3Samples = poly3.fit_transform(np.asarray(samples))
-        poly3Results = clf3.predict(poly3Samples)    
-        poly4Samples = poly4.fit_transform(np.asarray(samples))
-        poly4Results = clf4.predict(poly4Samples)    
-        poly5Samples = poly5.fit_transform(np.asarray(samples))
-        poly5Results = clf5.predict(poly5Samples)
+            pick = ws.cell(row=row, column=1).value
+        wb.save(os.curdir + '/Fitted/' + excel)
 
-        for index, results in enumerate([logResults, linResults, svResults, poly2Results, poly3Results, poly4Results, poly5Results]):
-            row2 = 2
-            for test in list(results):
-                ws2.cell(row=row2, column = 6 + index).value = str(test)
-                row2 += 1
-
-        wb2.save(os.curdir + '/Fitted/Basic7/' + excel)
 
 if __name__ == "__main__":
-    basic()
+    positionsDict = {'D/ST': {'inputs': [], 'outputs': []}, 'HC': {'inputs': [], 'outputs': []}, 'K': {'inputs': [], 'outputs': []}, 'QB': {'inputs': [], 'outputs': []}, 'RB': {'inputs': [], 'outputs': []}, 'WR': {'inputs': [], 'outputs': []}, 'TE': {'inputs': [], 'outputs': []}}
+    variables = ['Overall Draft Pick', 'Overall Finish', 'Total Points', 'Number of Weeks Missed', 'Average Weekly Scoring']
+    
+    for excel in os.listdir(os.curdir + '/Fitted'):
+        os.remove(os.curdir + '/Fitted/' + excel)
+    if len(os.listdir(os.curdir + '/Training')) == 0:
+        raise ValueError("No Training Data in Training Directory")
+
+    headersKey = getHeaders(os.curdir + '/Training/' + os.listdir(os.curdir + '/Training')[0])
+    getSamples(positionsDict, variables, headersKey)
+    trainSamples(positionsDict)
+    evaluate(positionsDict, variables, headersKey)

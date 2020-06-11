@@ -6,13 +6,13 @@ This project seeks to provide analysis about ESPN Fantasy Football draft data ba
 
 ### Overview
 
-The *draftresults.py* function creates a spreadsheet containing a summary of the draft data and final results of a given season in a specified ESPN Fantasy Football League. The sheet has a row for every draft pick, in order, listing the pick number, name of the NFL player selected, name of the fantasy team that selected the player, rank that the player was drafted based on their position, and rank that the player finished based on their position.
+The *draftresults.py* function creates a spreadsheet containing a summary of the draft data and final results of a given season in a specified ESPN Fantasy Football League. This sheet has a section where pick ratings can be filled out and used to train an analysis model. The *draftanalysis.py* function uses the training data to create a model that evaluates a draft and outputs the results as an excel file.
 
 ### Getting Started
 
 #### Command Line Arguments
 
-Four command line arguments are needed. The first two are cookies, which are required to access information for private leagues.
+Four command line arguments are needed for the *draftresults.py* function. The first two are cookies, which are required to access information for private leagues.
 
 To access the cookies, in Chrome go to Settings -> Privacy and Security -> Site Settings -> Cookies and site data -> See all cookies and site data -> espn.com. Find the *espn_s2* and *SWID* cookies. These are the first two command line arguments.
 
@@ -24,6 +24,8 @@ The final function call will be in the form: python draftresults.py [*espn_s2 HE
 
 *Example:* python draftresults.py ABCDEFGHIJKLMNOPQRSTUVWXYZ%1%2%3%4%5%6%7%8%9%0 ABCD-EFG-HIJ-KLMN 12345 2019
 
+No Command line arguments are needed for *draftanalysis.py*.
+
 #### Additional Setup
 
 I recommend creating and activating a Python virtual environment.
@@ -32,7 +34,9 @@ Install the necessary libraries by running *pip install -r requirements.txt* in 
 
 ### Code Details
 
-This script makes several GET requests using the ESPN Fantasy API. The URLs are defined in main, with different endpoints based on the data being obtained. 
+#### Draft Results
+
+This script, *draftresults.py* makes several GET requests using the ESPN Fantasy API. The URLs are defined in main, with different endpoints based on the data being obtained. 
 
 The first request gets information on the teams that year, creating a key that links a Team ID to that team's name.
 
@@ -40,14 +44,20 @@ The second request creates a dictionary of all NFL players and relevant fantasy 
 
 The third request creates a dictionary of all players drafted in the fantasy league during that season, linking information about each players draft position with information obtained in the second request.
 
-Once the requests are complete, the information is outputted to an Excel spreadsheet, identified by the League ID and year, created in the same directory as the code.
+Once the requests are complete, the information is outputted to an Excel spreadsheet, identified by the League ID and year, created in the Drafts directory.
 
 ESPN does not have information on this API, but details can be found [here](https://stmorse.github.io/journal/espn-fantasy-v3.html) and [here](https://www.reddit.com/r/fantasyfootball/comments/ct4hf3/new_espn_api/).
 
+#### Draft Analysis
 
+This script, *draftanalysis.py* trains a model based on sample training data and then applies that model to evaluate draft results.
 
+The first step is reading in data provided to the model to train it. This data is located in the *Training* folder and can be created by generating a spreadsheet using *draftresults.py* and filling out ratings, or by using the sample training files provided in the directory. The script parses every excel file in the directory, gathering data specified by the *variables* array in main. The data is sorted by position (QB, RB, etc.) into a dictionary containing inputs (draft rank, final rank, total score, etc.) and output (pick rating).
 
+Once the data is read in, the model is trained using the SVM feature of [Scikit-Learn](https://scikit-learn.org/stable/). A different model is generated for each position.
 
-# Acknowledgements
+Once the models have been trained, they are capable of evaluating a draft based on the specified variables. Any excel file in the *Drafts* directory will be evaluated and the corresponding new excel file will be generated in the *Fitted* directory. 
 
-Thanks to Jack Conlin, Nick Goetz, Matt Muenchow, Hunter Zogg, Elliot Glaser, Jack Olmanson, Jack Rothstein, Ethan Edwards, Rowan Desjardins, and Anirudh Panuganty for their contributions to the training data and input to the model. This was a truly interactive process and this would not be what it is without their feedback and suggestions.
+### Acknowledgements
+
+Thanks to Jack Conlin, Nick Goetz, Matt Muenchow, Hunter Zogg, Elliot Glaser, Jack Olmanson, Jack Rothstein, Ethan Edwards, Rowan Desjardins, and Anirudh Panuganty for their contributions to the training data and input to the model. This was a truly interactive process and this would not be what it is without their helpful feedback and suggestions.
