@@ -65,7 +65,7 @@ def evaluate(positionsDict, variables, headersKey):
                     sample[1] = 50
             for variable in variables:
                 sample.append(float(ws.cell(row=row, column=headersKey[variable]).value))
-            ws.cell(row=row, column = headersKey['Pick Rating (1 worst, 10 best)']).value = str(list(positionsDict[position]['regressor'].predict(np.asarray([sample])))[0])
+            ws.cell(row=row, column = headersKey['Pick Rating (1 worst, 10 best)']).value = str(round(list(positionsDict[position]['regressor'].predict(np.asarray([sample])))[0], 4))
             row += 1
             pick = ws.cell(row=row, column=1).value
         teamSheets(teamNames, headersKey, wb)
@@ -107,7 +107,8 @@ def teamSheets(teams, headers, wb):
     for team in teams:
         ws2 = wb.get_sheet_by_name(namesKey[team])
         ws2.delete_cols(headers['Fantasy Team'])
-
+        ws2.column_dimensions['B'].width = 25.0
+        ws2.column_dimensions['D'].width = 25.0
 
 
 if __name__ == "__main__":

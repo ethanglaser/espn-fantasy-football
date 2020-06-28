@@ -52,6 +52,9 @@ def getDraftResults(espn_s2, swid, url, playerData, fantasyTeamsKey):
 def createSheet(draftData, headersKey):
     wb = openpyxl.Workbook()
     ws = wb.create_sheet('Draft+Results')
+    ws.column_dimensions['B'].width = 25.0
+    ws.column_dimensions['D'].width = 25.0
+    ws.column_dimensions['E'].width = 25.0
     for sheet in wb.sheetnames:
         if sheet != 'Draft+Results':
             wb.remove_sheet(wb.get_sheet_by_name(sheet))
@@ -84,6 +87,8 @@ if __name__ == "__main__":
     playerData = getSeasonResults(espn_s2, swid, url2, positionsKey, nflTeamsKey)
     draftData = getDraftResults(espn_s2, swid, url, playerData, fantasyTeamsKey)
 
+    if 'Drafts' not in os.listdir():
+        os.mkdir('Drafts')
     if str(leagueId) + '-' + str(seasonId) + '.xlsx' in os.listdir('Drafts/'):
         raise ValueError("Sheet already exists for league " + str(leagueId) + " in year " + str(seasonId) + ". To create a new sheet, delete the existing one.")
     createSheet(draftData, headersKey)
