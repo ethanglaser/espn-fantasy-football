@@ -56,7 +56,9 @@ The first step is reading in data provided to the model to train it. This data i
 
 Once the data is read in, the model is trained using the SVM feature of [Scikit-Learn](https://scikit-learn.org/stable/). A different model is generated for each position.
 
-Once the models have been trained, they are capable of evaluating a draft based on the specified variables. Any excel file in the *Drafts* directory will be evaluated and the corresponding new excel file will be generated in the *Fitted* directory. 
+Once the models have been trained, they are capable of evaluating a draft based on the specified variables. Any excel file in the *Drafts* directory will be evaluated and the corresponding new excel file will be generated in the *Fitted* directory.
+
+In addition to the original sheet containing a complete view of the draft data, additional sheets will be created for each individual fantasy team to provide an overview of that team's draft performance, showing their picks, color-coded on a gradient using Python's *colour* library based on the evaluation of that pick. 
 
 ### Acknowledgements
 
