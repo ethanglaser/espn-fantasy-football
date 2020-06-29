@@ -58,7 +58,9 @@ Once the data is read in, the model is trained using the SVM feature of [Scikit-
 
 Once the models have been trained, they are capable of evaluating a draft based on the specified variables. Any excel file in the *Drafts* directory will be evaluated and the corresponding new excel file will be generated in the *Fitted* directory.
 
-In addition to the original sheet containing a complete view of the draft data, additional sheets will be created for each individual fantasy team to provide an overview of that team's draft performance, showing their picks, color-coded on a gradient using Python's *colour* library based on the evaluation of that pick. 
+In addition to the original sheet containing a complete view of the draft data, additional sheets will be created for each individual fantasy team to provide an overview of that team's draft performance, showing their picks, color-coded on a gradient using Python's *colour* library based on the evaluation of that pick.
+
+Lastly, analysis on overall trends in the data from the draft can be viewed in the *Leaderboards* sheet of the newly created excel file. This shows the overall draft performance of each fantasy team, as well as the ten best and worst picks from the draft.
 
 ### Acknowledgements
 

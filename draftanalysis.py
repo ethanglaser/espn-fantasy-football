@@ -50,6 +50,7 @@ def trainSamples(positionsDict):
 def evaluate(positionsDict, variables, headersKey):
     for excel in os.listdir(os.curdir + '/Drafts'):
         teamNames = set()
+        leaderData = []
         wb = openpyxl.load_workbook(filename = os.curdir + '/Drafts/' + excel)
         ws = wb.get_sheet_by_name("Draft+Results")
         row = 2
@@ -66,9 +67,15 @@ def evaluate(positionsDict, variables, headersKey):
             for variable in variables:
                 sample.append(float(ws.cell(row=row, column=headersKey[variable]).value))
             ws.cell(row=row, column = headersKey['Pick Rating (1 worst, 10 best)']).value = str(round(list(positionsDict[position]['regressor'].predict(np.asarray([sample])))[0], 4))
+            newLeader = {}
+            newLeader['name'] = ws.cell(row=row, column=headersKey['Player Name']).value
+            newLeader['rating'] = float(ws.cell(row=row, column=headersKey['Pick Rating (1 worst, 10 best)']).value)
+            newLeader['team'] = ws.cell(row=row, column=headersKey['Fantasy Team']).value
+            leaderData.append(newLeader)
             row += 1
             pick = ws.cell(row=row, column=1).value
         teamSheets(teamNames, headersKey, wb)
+        leaderboards(teamNames, leaderData, wb)
         wb.save(os.curdir + '/Fitted/' + excel)
 
 def teamSheets(teams, headers, wb):
@@ -110,6 +117,45 @@ def teamSheets(teams, headers, wb):
         ws2.column_dimensions['B'].width = 25.0
         ws2.column_dimensions['D'].width = 25.0
 
+def leaderboards(teams, data, wb):
+    wb.create_sheet("Leaderboards")
+    ws = wb.get_sheet_by_name("Leaderboards")
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 20
+
+    teamAverages = {}
+    for team in teams:
+        teamAverages[team] = []
+        for player in data:
+            if team == player['team']:
+                teamAverages[team].append(player['rating'])
+        teamAverages[team] = sum(teamAverages[team])/len(teamAverages[team])
+
+    ws.cell(row=1, column=1).value = 'Team Average'
+    ws.cell(row=1, column=1).font = openpyxl.styles.Font(bold=True)
+    row = 2
+    for team in sorted(teamAverages.items(), key=lambda x: x[1], reverse=True):
+        ws.cell(row=row, column=1).value = team[0]
+        ws.cell(row=row, column=2).value = teamAverages[team[0]]
+        row += 1
+    row += 1
+    ws.cell(row=row, column=1).value = "Best Picks"    
+    ws.cell(row=row, column=1).font = openpyxl.styles.Font(bold=True)
+    for player in sorted(data, key=lambda i: i['rating'], reverse=True)[:10]:
+        row += 1
+        ws.cell(row=row, column=3).value = player['rating']
+        ws.cell(row=row, column=1).value = player['name']
+        ws.cell(row=row, column=2).value = player['team']
+    
+    row += 2
+    ws.cell(row=row, column=1).value = "Worst Picks"    
+    ws.cell(row=row, column=1).font = openpyxl.styles.Font(bold=True)
+    for player in sorted(data, key=lambda i: i['rating'])[:10]:
+        row += 1
+        ws.cell(row=row, column=3).value = player['rating']
+        ws.cell(row=row, column=1).value = player['name']
+        ws.cell(row=row, column=2).value = player['team']
+ 
 
 if __name__ == "__main__":
     positionsDict = {'D/ST': {'inputs': [], 'outputs': []}, 'HC': {'inputs': [], 'outputs': []}, 'K': {'inputs': [], 'outputs': []}, 'QB': {'inputs': [], 'outputs': []}, 'RB': {'inputs': [], 'outputs': []}, 'WR': {'inputs': [], 'outputs': []}, 'TE': {'inputs': [], 'outputs': []}}
