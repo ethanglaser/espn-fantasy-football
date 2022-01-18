@@ -2,23 +2,27 @@ import os
 import pandas as pd
 import xgboost as xg
 import numpy as np
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression
 
 
-column_renames = {'Pick Rating (1 worst, 10 best)': 'rating', 'Position-Based Draft Pick': 'position_draft', 'Position-Based Season Finish': 'position_finish', 'Overall Draft Pick': 'ovr_draft', 'Overall Season Finish': 'ovr_finish', 'Total Points': 'pts_total', 'Number of Weeks Missed': 'wks_out', 'Average Weekly Scoring': 'pts_avg', 'Position': 'pos'}
+column_renames = {'Pick Rating (1 worst, 10 best)': 'rating', 'Position-Based Draft Pick': 'position_draft', 'Position-Based Season Finish': 'position_finish', 'Overall Draft Pick': 'ovr_draft', 'Overall Finish': 'ovr_finish', 'Total Points': 'pts_total', 'Number of Weeks Missed': 'wks_out', 'Average Weekly Scoring': 'pts_avg', 'Position': 'pos'}
 drop_for_training = ["Player Name", "Fantasy Team", "Position", "League", "Season", "Evaluator", "pts_total", "pts_avg"]
 
-def evaluate(test_year, drop_cols, position_normalize_cols, general_normalize_cols):
+def evaluate(test_year, drop_cols, position_normalize_cols, general_normalize_cols, model, model_name):
     # read in every excel file in the Training folder
     # process file, dropping specified columns and normalizing others based on that specific file
     # add file to train or test data depending on year
     # train model and evaluate
     train_data = []
     test_data = []
-    for excel in os.listdir(os.curdir + '/Training'):
+    training_files = os.listdir(os.curdir + '/Training')
+    training_files.remove("39276-2020-Larson.xlsx")
+    for excel in training_files:
         current = pd.read_excel(os.curdir + '/Training/' + excel)
         current = initial_processing(current)
-        current = process_season(current, drop_cols, position_normalize_cols, general_normalize_cols)
+        current = process_season(current, drop_cols, position_normalize_cols, general_normalize_cols, draft_perform_ratio=True)
         current['League'] = excel.split('-')[0]
         current['Season'] = excel.split('-')[1]
         current['Evaluator'] = excel.split('-')[2].split('.')[0]
@@ -39,19 +43,18 @@ def evaluate(test_year, drop_cols, position_normalize_cols, general_normalize_co
     test_X = test_data.drop(columns=drop_for_training + ['rating'])
     test_Y = test_data['rating']
 
-    model = xg.XGBRegressor()
+    #model = xg.XGBRegressor(eval_metric='rmse')
     model.fit(train_X, train_Y)
     predictions = model.predict(test_X)
-    test_X['rating'] = test_Y
-    test_X['predicted'] = predictions
-    test_X['error'] = np.abs(test_X['rating'] - test_X['predicted'])
-    test_X.to_csv("temp" + str(test_year) + ".csv")
-    return np.sqrt(mean_squared_error(test_Y, predictions))
+    test_data['predicted'] = predictions
+    test_data['error'] = np.abs(test_data['rating'] - test_data['predicted'])
+    #test_data.to_csv("temp_" + str(test_year) + "_" + model_name + "_ratio_dropovr" + ".csv")
+    return np.sqrt(mean_squared_error(test_Y, predictions)), mean_absolute_error(test_Y, predictions)
 
 
 
 
-def process_season(df, drop_cols, position_normalize_cols, general_normalize_cols):
+def process_season(df, drop_cols, position_normalize_cols, general_normalize_cols, draft_perform_ratio=False):
     # drop specified columns
     df = df.drop(columns=drop_cols)
     # normalize specified columns
@@ -61,6 +64,9 @@ def process_season(df, drop_cols, position_normalize_cols, general_normalize_col
         df['normal_' + col] = groups.transform(lambda x: (x - x.mean()) / x.std())
     for col in general_normalize_cols:
         df['normal_' + col] = (df[col] - df[col].mean()) / df[col].std()
+    
+    if draft_perform_ratio:
+        df['draft_perform_ratio'] = np.log(df['position_finish'] / df['position_draft'])
     # return processed dataframe
     return df
 
@@ -88,7 +94,7 @@ def get_human_based_rmse():
                 ratings2 = pd.read_excel(os.curdir + '/Training/' + excel2)['Pick Rating (1 worst, 10 best)']
                 ratings = pd.concat([ratings1.rename('1'), ratings2.rename('2')], axis=1)
                 ratings = ratings.dropna()
-                print(np.sqrt(mean_squared_error(ratings['1'], ratings['2'])))
+                print(excel.split('.')[0], excel2.split('.')[0], np.sqrt(mean_squared_error(ratings['1'], ratings['2'])), mean_absolute_error(ratings['1'], ratings['2']))
                 # for r1, r2 in zip(ratings1, ratings2):
                 #     if r1.isnumeric() and not r2.isnumeric():
                 #         total_ratings += 1
@@ -96,12 +102,13 @@ def get_human_based_rmse():
                 #     else:
                 #         print(r1, r2)
 
-    return np.sqrt(total_squared_error / total_ratings)
+    return np.sqrt(total_squared_error / total_ratings), 
                     
 
 
 
 if __name__ == '__main__':
     for year in ['2018', '2019', '2020', '2021']:
-        print(year + " rmse: " + str(evaluate(year, [], ['pts_total', 'pts_avg'], [])))
-    print("Human-based rmse: " + str(get_human_based_rmse()))
+        for model, model_name in ([(xg.XGBRegressor(), 'xgboost'), (SVR(), 'svr'), (LinearRegression(), 'linear')]):
+            print(year + " rmse and mae for " + model_name + ": " + str(evaluate(year, ['ovr_finish'], ['pts_total', 'pts_avg'], [], model, model_name)))
+    print("Human-based rmse and mae: " + str(get_human_based_rmse()))

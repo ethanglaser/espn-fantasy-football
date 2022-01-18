@@ -1,0 +1,28 @@
+1. Original:
+evaluate(year, [], ['pts_total', 'pts_avg'], [])
+drop_for_training = ["Player Name", "Fantasy Team", "Position", "League", "Season", "Evaluator", "pts_total", "pts_avg"]
+2018 rmse: 2.2178427414720066
+2019 rmse: 1.4411323475417055
+2020 rmse: 2.5327929319030353
+2021 rmse: 2.192600609182965
+2. Original without Larson 2020 optimizing for rmse:
+2018 rmse and mae: (2.270178877521765, 1.7415223565756106)
+2019 rmse and mae: (1.4912962907403446, 1.1710767077415116)
+2020 rmse and mae: (2.2681211277836693, 1.8374778611297753)
+2021 rmse and mae: (1.9017541807796083, 1.4731815824906032)
+3. Original without Larson 2020 optimizing for mae:
+2018 rmse and mae: (2.270178877521765, 1.7415223565756106)
+2019 rmse and mae: (1.4912962907403446, 1.1710767077415116)
+2020 rmse and mae: (2.2681211277836693, 1.8374778611297753)
+2021 rmse and mae: (1.9017541807796083, 1.4731815824906032)
+
+
+
+ideas:
+add column for missing entire season 
+add points in last 5-8 weeks column
+add rookie status column
+drop rows if rating is significantly different than others
+rmse but prioritize lower picks
+avoid using squared or do something to not discourage high/low predictions
+scale predictions by position

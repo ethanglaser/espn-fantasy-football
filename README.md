@@ -64,4 +64,4 @@ Lastly, analysis on overall trends in the data from the draft can be viewed in t
 
 ### Acknowledgements
 
-Thanks to Jack Conlin, Nick Goetz, Matt Muenchow, Hunter Zogg, Elliot Glaser, Jack Olmanson, Jack Rothstein, Ethan Edwards, Rowan Desjardins, and Anirudh Panuganty for their contributions to the training data and input to the model. This was a truly interactive process and this would not be what it is without their helpful feedback and suggestions.
+Thanks to Jack Conlin, Nick Goetz, Matt Muenchow, Hunter Zogg, Elliot Glaser, Jack Olmanson, Jack Rothstein, Ethan Edwards, Rowan Desjardins, Anirudh Panuganty, Cedar Palaia, Brent Prodahl, Joseph Larson, and Noah Rodriguez for their contributions to the training data and input to the model. This was a truly interactive process and this would not be what it is without their helpful feedback and suggestions.

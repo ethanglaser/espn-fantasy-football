@@ -1,51 +1,54 @@
 import sklearn
-from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, median_absolute_error
 import numpy as np
 import openpyxl
 import os
 from colour import Color
 import math
+import pandas as pd
+from matplotlib import pyplot as plt
+import xgboost
 
-
-def getSamples(positionsDict, variables, headersKey):
+def get_data():
+    data = []
     for excel in os.listdir(os.curdir + '/Training'):
-        wb = openpyxl.load_workbook(filename = os.curdir + '/Training/' + excel)
-        ws = wb.get_sheet_by_name("Draft+Results")
-        row = 2
-        pick = ws.cell(row=row, column=headersKey['Overall Draft Pick']).value
-        while pick:
-            position = ws.cell(row=row, column=headersKey['Position']).value
-            nextRow = [float(ws.cell(row=row, column=headersKey['Position-Based Draft Pick']).value.split('-')[1]), float(ws.cell(row=row, column=headersKey['Position-Based Season Finish']).value.split('-')[1])]
-            if nextRow[1] == 0:
-                if ws.cell(row=row, column=headersKey['Position']) == 'WR' or 'RB':
-                    nextRow[1] = 100
-                else:
-                    nextRow[1] = 50
-            for variable in variables:
-                nextRow.append(float(ws.cell(row=row, column=headersKey[variable]).value))
-            positionsDict[position]['inputs'].append(nextRow)
-            positionsDict[position]['outputs'].append(float(ws.cell(row=row, column=headersKey['Pick Rating (1 worst, 10 best)']).value))
-            row += 1
-            pick = ws.cell(row=row, column=1).value
+        current = pd.read_excel(os.curdir + '/Training/' + excel)
+        current = initial_processing(current)
+        data.append(current)
+    data = pd.concat(data)
+    data = data.dropna()
+    return data
 
-def getHeaders(path):
-    wb = openpyxl.load_workbook(filename = path)
-    ws = wb.get_sheet_by_name("Draft+Results")
-    headers = {}
-    row = 1
-    column = 1
-    header = ws.cell(row=row,column=column).value
-    while header:
-        headers[header] = column
-        column += 1
-        header = ws.cell(row=row,column=column).value
-    return headers
+def initial_processing(current):
+    if "Points in Final 8 Weeks" in current.columns:
+        current = current.drop(columns=["Points in Final 8 Weeks"])
+    current = current.dropna()
+    current = pd.get_dummies(current, columns=["Position"], prefix="Position_")
+    current["Position-Based Draft Pick"] = current["Position-Based Draft Pick"].str.extract(r"[A-Z]+-(\d+)")
+    current["Position-Based Season Finish"] = current["Position-Based Season Finish"].str.extract(r"[A-Z]+-(\d+)")    
+    current = current.replace({"Position-Based Season Finish": 0}, 100)
+    return current
 
-def trainSamples(positionsDict):
-    for position in positionsDict:
-        svRegressor = SVR()
-        svRegressor.fit(np.asarray(positionsDict[position]['inputs']), np.asarray(positionsDict[position]['outputs']))
-        positionsDict[position]['regressor'] = svRegressor
+def fit_model(data, model, seed):
+    train, test = train_test_split(data, test_size=0.2, random_state=seed)
+    train_x = train.drop(columns=["Pick Rating (1 worst, 10 best)"])
+    train_y = train["Pick Rating (1 worst, 10 best)"]
+    print(train_x)
+    print(train_y)
+    model.fit(train_x, train_y)
+
+    return model, train_x, train_y, test.drop(columns=["Pick Rating (1 worst, 10 best)"]), test["Pick Rating (1 worst, 10 best)"]
+
+def evaluate_model(model, test_x, test_y):
+    pred_y = model.predict(test_x)
+    r2 = r2_score(test_y, pred_y)
+    rmse = np.sqrt(mean_squared_error(test_y, pred_y))
+    mae = mean_absolute_error(test_y, pred_y)
+    medae = median_absolute_error(test_y, pred_y)
+    return r2, rmse, mae, medae
 
 def evaluate(positionsDict, variables, headersKey):
     for excel in os.listdir(os.curdir + '/Drafts'):
@@ -65,7 +68,8 @@ def evaluate(positionsDict, variables, headersKey):
                 else:
                     sample[1] = 50
             for variable in variables:
-                sample.append(float(ws.cell(row=row, column=headersKey[variable]).value))
+                if ws.cell(row=row, column=headersKey[variable]).value != None:
+                    sample.append(float(ws.cell(row=row, column=headersKey[variable]).value))
             ws.cell(row=row, column = headersKey['Pick Rating (1 worst, 10 best)']).value = str(round(list(positionsDict[position]['regressor'].predict(np.asarray([sample])))[0], 4))
             newLeader = {}
             newLeader['name'] = ws.cell(row=row, column=headersKey['Player Name']).value
@@ -157,16 +161,18 @@ def leaderboards(teams, data, wb):
         ws.cell(row=row, column=2).value = player['team']
  
 
-if __name__ == "__main__":
-    positionsDict = {'D/ST': {'inputs': [], 'outputs': []}, 'HC': {'inputs': [], 'outputs': []}, 'K': {'inputs': [], 'outputs': []}, 'QB': {'inputs': [], 'outputs': []}, 'RB': {'inputs': [], 'outputs': []}, 'WR': {'inputs': [], 'outputs': []}, 'TE': {'inputs': [], 'outputs': []}}
-    variables = ['Overall Draft Pick', 'Overall Finish', 'Total Points', 'Number of Weeks Missed', 'Average Weekly Scoring']
-    
+if __name__ == "__main__":    
     for excel in os.listdir(os.curdir + '/Fitted'):
         os.remove(os.curdir + '/Fitted/' + excel)
     if len(os.listdir(os.curdir + '/Training')) == 0:
         raise ValueError("No Training Data in Training Directory")
 
-    headersKey = getHeaders(os.curdir + '/Training/' + os.listdir(os.curdir + '/Training')[0])
-    getSamples(positionsDict, variables, headersKey)
-    trainSamples(positionsDict)
-    evaluate(positionsDict, variables, headersKey)
+    training = get_data()
+
+    model = xgboost.XGBRegressor()
+    seed = 0
+
+    model, train_x, train_y, test_x, test_y = fit_model(training.select_dtypes(['number']), model, seed)
+    print(evaluate_model(model, test_x, test_y))
+
+    #evaluate(positionsDict, variables, headersKey)
