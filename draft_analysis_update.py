@@ -53,7 +53,6 @@ def evaluate(test_year, drop_cols, position_normalize_cols, general_normalize_co
 
 
 
-
 def process_season(df, drop_cols, position_normalize_cols, general_normalize_cols, draft_perform_ratio=False):
     # drop specified columns
     df = df.drop(columns=drop_cols)
